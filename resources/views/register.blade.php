@@ -7,6 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Student Registration</title>
+    <!-- Cropper.js CSS & JS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <style>
 *{
     margin:0;
@@ -329,14 +332,12 @@ form{
     <!-- Header -->
 
     <div class="header">
-        <a href="{{ url('/') }}" class="back-btn">
+        <a href="{{ url('/dashboard') }}" class="back-btn" onclick="if(window.history.length > 1){ window.history.back(); return false; }">
             ←
         </a>
-        
+                <div class="header-title">
 
-        <div class="header-title">
-
-            <h2>New Student</h2>
+            <h2>{{ isset($student) ? 'Edit Student' : 'New Student' }}</h2>
 
             <p>
             School - {{ $schoolCode }}
@@ -354,12 +355,24 @@ form{
 
     </div>
 
-    <form method="POST" action="/students" enctype="multipart/form-data">
+    <form method="POST" action="/students">
 
         @csrf
+        <input type="hidden" name="id" value="{{ old('id', $student->id ?? '') }}">
         <input type="hidden"
        name="schoolcode"
        value="{{ $schoolCode }}">
+
+        @if ($errors->any())
+            <div style="background: #fee2e2; color: #ef4444; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                <strong style="display:block; margin-bottom:8px; font-size:14px;">Please fix the following errors:</strong>
+                <ul style="margin: 0; padding-left: 20px; font-size:13px;">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         <!-- ================= IDENTITY ================= -->
 
@@ -374,7 +387,9 @@ form{
                 <input
                     type="text"
                     name="erpid"
-                    placeholder="ERP ID">
+                    placeholder="ERP ID"
+                    value="{{ old('erpid', $student->erpid ?? '') }}"
+                    required>
 
             </div>
 
@@ -385,7 +400,9 @@ form{
                 <input
                     type="text"
                     name="rollno"
-                    placeholder="Roll No">
+                    placeholder="Roll No"
+                    value="{{ old('rollno', $student->rollno ?? '') }}"
+                    required>
 
             </div>
 
@@ -401,6 +418,7 @@ form{
                     type="text"
                     name="fname"
                     placeholder="First Name"
+                    value="{{ old('fname', $student->fname ?? '') }}"
                     required>
 
             </div>
@@ -412,7 +430,8 @@ form{
                 <input
                     type="text"
                     name="mname"
-                    placeholder="Middle Name">
+                    placeholder="Middle Name"
+                    value="{{ old('mname', $student->mname ?? '') }}">
 
             </div>
 
@@ -426,9 +445,11 @@ form{
                 type="text"
                 name="lname"
                 placeholder="Last Name"
+                value="{{ old('lname', $student->lname ?? '') }}"
                 required>
 
         </div>
+
         <!-- FULL NAME -->
 
         <div class="field">
@@ -457,16 +478,9 @@ form{
 
                 <option value="">Select Standard</option>
 
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
+                @for ($i = 1; $i <= 12; $i++)
+                    <option value="{{ $i }}" {{ old('class', $student->class ?? '') == $i ? 'selected' : '' }}>{{ $i }}</option>
+                @endfor
 
             </select>
 
@@ -480,12 +494,9 @@ form{
 
                 <option value="">Select Division</option>
 
-                <option>A</option>
-                <option>B</option>
-                <option>C</option>
-                <option>D</option>
-                <option>E</option>
-                <option>F</option>
+                @foreach (['A', 'B', 'C', 'D', 'E', 'F'] as $divOption)
+                    <option value="{{ $divOption }}" {{ old('div', $student->div ?? '') == $divOption ? 'selected' : '' }}>{{ $divOption }}</option>
+                @endforeach
 
             </select>
 
@@ -500,7 +511,8 @@ form{
                 <input
                     type="date"
                     name="dob"
-                    id="dob">
+                    id="dob"
+                    value="{{ old('dob', $student->dob ?? '') }}">
                     <small id="dobError" class="error"></small>
 
             </div>
@@ -513,14 +525,9 @@ form{
 
                     <option value="">Select</option>
 
-                    <option>A+</option>
-                    <option>A-</option>
-                    <option>B+</option>
-                    <option>B-</option>
-                    <option>AB+</option>
-                    <option>AB-</option>
-                    <option>O+</option>
-                    <option>O-</option>
+                    @foreach (['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as $bg)
+                        <option value="{{ $bg }}" {{ old('bloodgroup', $student->bloodgroup ?? '') == $bg ? 'selected' : '' }}>{{ $bg }}</option>
+                    @endforeach
 
                 </select>
 
@@ -539,6 +546,7 @@ form{
                 type="text"
                 name="pname"
                 placeholder="Parent Name"
+                value="{{ old('pname', $student->pname ?? '') }}"
                 required>
 
         </div>
@@ -552,7 +560,9 @@ form{
                 name="pcontact"
                 id="pcontact"
                 placeholder="9876543210"
-                maxlength="10">
+                maxlength="10"
+                value="{{ old('pcontact', $student->pcontact ?? '') }}"
+                required>
             <small id="mobileError" class="error"></small>
 
         </div>
@@ -566,13 +576,15 @@ form{
     type="text"
     name="address1"
     placeholder="Flat / house no., building"
+    value="{{ old('address1', $student->address1 ?? '') }}"
     required>
     </div>
 <div class="field">
 <input
     type="text"
     name="address2"
-    placeholder="Street, area">
+    placeholder="Street, area"
+    value="{{ old('address2', $student->address2 ?? '') }}">
 </div>
 
 <div class="row">
@@ -582,7 +594,8 @@ form{
         <input
             type="text"
             name="landmark"
-            placeholder="Landmark">
+            placeholder="Landmark"
+            value="{{ old('landmark', $student->landmark ?? '') }}">
 
     </div>
 
@@ -591,7 +604,9 @@ form{
         <input
             type="text"
             name="pincode"
-            placeholder="PIN code">
+            placeholder="PIN code"
+            value="{{ old('pincode', $student->pincode ?? '') }}"
+            required>
 
     </div>
 
@@ -599,19 +614,384 @@ form{
 
 <!-- ================= PHOTO ================= -->
 <h3 class="section-title">PHOTO FOR THE CARD</h3>
-<div style="
-        background:#fce9d9;
-        padding:15px;
-        border-radius:15px;
-    ">
-        📷
+<input type="hidden" name="photo" id="photoData" value="{{ old('photo', $student->photo ?? '') }}">
+
+<div id="cameraArea" style="margin-bottom:30px;">
+    <!-- Choice buttons for Camera, Gallery, and File Picker -->
+    <div id="cameraPrompt" style="display:flex; flex-direction:column; gap:12px;">
+        <button type="button" onclick="tryNativeBridgePhoto('Camera.GetPhoto')" style="width:100%; padding:16px; background:#17384a; color:white; border:none; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+            <span style="font-size:20px;">📷</span> Take Photo with Camera
+        </button>
+
+        <button type="button" onclick="tryNativeBridgePhoto('Camera.PickMedia')" style="width:100%; padding:16px; background:#f0f4f8; color:#17384a; border:2px dashed #b0c4de; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+            <span style="font-size:20px;">🖼️</span> Choose from Gallery
+        </button>
+
+        <label style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:14px; background:#ffffff; color:#17384a; border:2px solid #17384a; border-radius:18px; font-size:15px; font-weight:bold; cursor:pointer; position:relative; overflow:hidden;">
+            <span style="font-size:18px;">📁</span> Select Image File
+            <input type="file" id="localFileInput" onchange="handleFileInputSelect(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.01; cursor:pointer; z-index:10;">
+        </label>
     </div>
-    <div>
-        <p style="font-weight:600; margin:0;">Capture photo</p>
-        <p style="margin:0; color:#777; font-size:14px;">
-            Front-facing, plain background. You'll crop it next.
-        </p>
+
+    <!-- Photo preview after selection & cropping -->
+    <div id="photoPreviewBox" style="display:none; text-align:center;">
+        <img id="photoPreviewImg" style="width:100%; max-width:260px; height:260px; object-fit:cover; border-radius:20px; border:3px solid #4caf50; box-shadow:0 4px 15px rgba(0,0,0,0.1);" />
+        <div style="margin-top:14px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+            <button type="button" onclick="reCropCurrentPhoto()" style="background:#17384a; color:white; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:bold; cursor:pointer;">
+                ✂️ Crop / Adjust
+            </button>
+            <button type="button" onclick="tryNativeBridgePhoto('Camera.GetPhoto')" style="background:#f9a43a; color:white; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:bold; cursor:pointer;">
+                📷 Camera
+            </button>
+            <button type="button" onclick="tryNativeBridgePhoto('Camera.PickMedia')" style="background:#e0e0e0; color:#333; border:none; border-radius:12px; padding:10px 16px; font-size:13px; cursor:pointer;">
+                🖼️ Gallery
+            </button>
+            <label style="background:#e0e0e0; color:#333; border:none; border-radius:12px; padding:10px 16px; font-size:13px; cursor:pointer; position:relative; display:inline-block;">
+                📁 File
+                <input type="file" accept="image/*" style="opacity:0.01; position:absolute; top:0; left:0; width:100%; height:100%; cursor:pointer;" onchange="handleFileInputSelect(this)">
+            </label>
+        </div>
     </div>
+</div>
+
+<!-- ================= CROPPER MODAL ================= -->
+<div id="cropperModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:99999; flex-direction:column; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:white; border-radius:24px; width:100%; max-width:380px; padding:20px; text-align:center; display:flex; flex-direction:column; gap:14px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0; color:#17384a; font-size:18px; font-weight:bold;">Crop & Adjust Photo</h3>
+            <button type="button" onclick="closeCropper()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#888;">✕</button>
+        </div>
+        
+        <div style="max-height:280px; width:100%; overflow:hidden; border-radius:16px; background:#111; display:flex; justify-content:center; align-items:center;">
+            <img id="cropperImage" style="max-width:100%; max-height:280px; display:block;" src="" />
+        </div>
+
+        <div style="display:flex; justify-content:center; gap:8px;">
+            <button type="button" onclick="rotateCropper(-90)" style="padding:8px 12px; background:#f0f4f8; color:#17384a; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">↺ -90°</button>
+            <button type="button" onclick="rotateCropper(90)" style="padding:8px 12px; background:#f0f4f8; color:#17384a; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">↻ +90°</button>
+            <button type="button" onclick="zoomCropper(0.1)" style="padding:8px 12px; background:#f0f4f8; color:#17384a; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">🔍 +</button>
+            <button type="button" onclick="zoomCropper(-0.1)" style="padding:8px 12px; background:#f0f4f8; color:#17384a; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">🔍 -</button>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:4px;">
+            <button type="button" onclick="closeCropper()" style="flex:1; padding:12px; background:#e0e0e0; color:#333; border:none; border-radius:14px; font-weight:bold; cursor:pointer;">Cancel</button>
+            <button type="button" onclick="applyCrop()" style="flex:1; padding:12px; background:#f9a43a; color:white; border:none; border-radius:14px; font-weight:bold; cursor:pointer;">Crop & Apply</button>
+        </div>
+    </div>
+</div>
+
+<canvas id="photoCanvas" style="display:none;"></canvas>
+
+<script>
+    // Diagnostic Checks
+    console.log("=== DIAGNOSTIC CHECKS ===");
+    console.log("Secure context:", window.isSecureContext);
+    console.log("Media devices:", navigator.mediaDevices);
+    console.log("getUserMedia available:", !!navigator.mediaDevices?.getUserMedia);
+    console.log("User Agent:", navigator.userAgent);
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.querySelector('form[action="/students"]');
+        if (form) {
+            form.addEventListener('submit', function() {
+                console.log("[LOG] Form submit triggered. Photo data length:", document.getElementById('photoData')?.value?.length || 0);
+            });
+        }
+        // Native event listener (Dispatched directly by Android NativePHP Kotlin container)
+        document.addEventListener("native-event", function (e) {
+            console.log("[LOG] native-event received in JS:", e.detail);
+            var eventName = e.detail?.event || '';
+            var payload = e.detail?.payload || {};
+
+            var photoPath = '';
+            if (eventName.includes('PhotoTaken')) {
+                photoPath = payload.path || '';
+            } else if (eventName.includes('MediaSelected')) {
+                photoPath = payload.path || (payload.files && payload.files[0] ? payload.files[0].path : '');
+            }
+
+            if (photoPath) {
+                console.log("[LOG] Direct native photo path captured from Android container:", photoPath);
+                processNativePhotoPath(photoPath);
+            }
+        });
+
+        // Also register on window.Native if available
+        if (window.Native && window.Native.on) {
+            window.Native.on('Native\\Mobile\\Events\\Camera\\PhotoTaken', function(payload) {
+                if (payload && payload.path) processNativePhotoPath(payload.path);
+            });
+            window.Native.on('Native\\Mobile\\Events\\Gallery\\MediaSelected', function(payload) {
+                var path = payload.path || (payload.files && payload.files[0] ? payload.files[0].path : '');
+                if (path) processNativePhotoPath(path);
+            });
+        }
+
+        // Existing photo check for edit mode
+        var existingPhoto = document.getElementById('photoData')?.value;
+        if (existingPhoto) {
+            var photoSrc = existingPhoto;
+            if (!photoSrc.startsWith('data:') && !photoSrc.startsWith('http') && !photoSrc.startsWith('file:')) {
+                photoSrc = '/storage/' + photoSrc;
+            }
+            document.getElementById('photoPreviewImg').src = photoSrc;
+            document.getElementById('cameraPrompt').style.display = 'none';
+            document.getElementById('photoPreviewBox').style.display = 'block';
+        }
+    });
+
+    var photoPollInterval = null;
+
+    async function tryNativeBridgePhoto(method = 'Camera.GetPhoto') {
+        console.log("[LOG] Invoking NativePHP Bridge method:", method);
+        
+        try { fetch('/check-photo?clear=1'); } catch(e){}
+
+        // Fallback polling in case native-event listener isn't hit directly
+        if (photoPollInterval) clearInterval(photoPollInterval);
+        let pollCount = 0;
+        photoPollInterval = setInterval(async function() {
+            pollCount++;
+            if (pollCount > 60) {
+                clearInterval(photoPollInterval);
+                return;
+            }
+            try {
+                const res = await fetch('/check-photo');
+                const data = await res.json();
+                if (data && data.photo) {
+                    console.log("[LOG] Photo path received from Server Poller:", data.photo);
+                    clearInterval(photoPollInterval);
+                    processNativePhotoPath(data.photo);
+                }
+            } catch(e){}
+        }, 500);
+
+        try {
+            const csrfToken = document.querySelector('input[name="_token"]')?.value || '';
+            await fetch('/_native/api/call', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    method: method,
+                    params: method === 'Camera.PickMedia' ? { mediaType: 'image', multiple: false } : {}
+                })
+            });
+        } catch(err) {
+            console.log("[LOG] NativePHP Bridge Call Error:", err);
+        }
+    }
+
+    var cropperInstance = null;
+    var currentRawPhotoSrc = null;
+
+    function handleFileInputSelect(input) {
+        if (input.files && input.files[0]) {
+            var file = input.files[0];
+            if (!file.type.startsWith('image/')) {
+                alert('Please select a valid image file (JPG, PNG, WEBP, etc.)!');
+                input.value = '';
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                openCropperModal(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function openCropperModal(imageSrc) {
+        if (!imageSrc) return;
+        currentRawPhotoSrc = imageSrc;
+
+        var modal = document.getElementById('cropperModal');
+        var image = document.getElementById('cropperImage');
+        image.src = imageSrc;
+        modal.style.display = 'flex';
+
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
+        }
+
+        setTimeout(function() {
+            if (typeof Cropper !== 'undefined') {
+                cropperInstance = new Cropper(image, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 0.9,
+                    responsive: true
+                });
+            }
+        }, 100);
+    }
+
+    function rotateCropper(deg) {
+        if (cropperInstance) cropperInstance.rotate(deg);
+    }
+
+    function zoomCropper(ratio) {
+        if (cropperInstance) cropperInstance.zoom(ratio);
+    }
+
+    function closeCropper() {
+        var modal = document.getElementById('cropperModal');
+        modal.style.display = 'none';
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
+        }
+    }
+
+    function applyCrop() {
+        if (cropperInstance) {
+            var canvas = cropperInstance.getCroppedCanvas({ width: 400, height: 400 });
+            if (canvas) {
+                var croppedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                applyBase64ToForm(croppedDataUrl);
+                closeCropper();
+                return;
+            }
+        }
+        applyBase64ToForm(currentRawPhotoSrc);
+        closeCropper();
+    }
+
+    function reCropCurrentPhoto() {
+        if (currentRawPhotoSrc) {
+            openCropperModal(currentRawPhotoSrc);
+        } else {
+            var existingVal = document.getElementById('photoData')?.value || document.getElementById('photoPreviewImg')?.src;
+            if (existingVal) openCropperModal(existingVal);
+        }
+    }
+
+    function convertMobilePathToBase64(path) {
+        return new Promise((resolve) => {
+            if (!path) return resolve(null);
+            if (path.startsWith('data:image')) return resolve(path);
+
+            var formattedPath = path;
+            if (!formattedPath.startsWith('file://') && !formattedPath.startsWith('http') && !formattedPath.startsWith('data:')) {
+                formattedPath = 'file://' + (formattedPath.startsWith('/') ? formattedPath : '/' + formattedPath);
+            }
+
+            var img = new Image();
+            img.onload = function() {
+                try {
+                    var canvas = document.createElement('canvas');
+                    canvas.width = img.width || 800;
+                    canvas.height = img.height || 800;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    console.log("[LOG] Canvas converted mobile photo to Base64 (length: " + dataUrl.length + ")");
+                    resolve(dataUrl);
+                } catch(e) {
+                    console.log("[LOG] Canvas export error:", e);
+                    readBlobFallback();
+                }
+            };
+            img.onerror = function() {
+                console.log("[LOG] Image load error for path:", formattedPath);
+                readBlobFallback();
+            };
+
+            function readBlobFallback() {
+                fetch(formattedPath)
+                    .then(r => r.blob())
+                    .then(blob => {
+                        var reader = new FileReader();
+                        reader.onloadend = function() {
+                            if (reader.result && reader.result.startsWith('data:image')) {
+                                console.log("[LOG] FileReader blob converted mobile photo to Base64 (length: " + reader.result.length + ")");
+                                resolve(reader.result);
+                            } else {
+                                resolve(formattedPath);
+                            }
+                        };
+                        reader.readAsDataURL(blob);
+                    })
+                    .catch(err => {
+                        console.log("[LOG] Fetch blob error for path:", formattedPath, err);
+                        resolve(formattedPath);
+                    });
+            }
+
+            img.src = formattedPath;
+        });
+    }
+
+    async function processNativePhotoPath(path) {
+        if (!path) return;
+        if (photoPollInterval) clearInterval(photoPollInterval);
+
+        console.log("[LOG] Processing native photo path:", path);
+
+        var base64Data = await convertMobilePathToBase64(path);
+
+        if (!base64Data || !base64Data.startsWith('data:image')) {
+            try {
+                const res = await fetch('/convert-path-to-base64?path=' + encodeURIComponent(path));
+                const data = await res.json();
+                if (data && data.base64 && data.base64.startsWith('data:image')) {
+                    base64Data = data.base64;
+                }
+            } catch(e) {}
+        }
+
+        applyBase64ToForm(base64Data);
+        openCropperModal(base64Data);
+    }
+
+    function readLocalFileViaXHR(fileUrl) {
+        try {
+            var xhr = new XMLHttpRequest();
+            xhr.onload = function() {
+                var reader = new FileReader();
+                reader.onloadend = function() {
+                    if (reader.result) {
+                        console.log("[LOG] XHR converted file to Base64 (length: " + reader.result.length + ")");
+                        applyBase64ToForm(reader.result);
+                        openCropperModal(reader.result);
+                    }
+                };
+                reader.readAsDataURL(xhr.response);
+            };
+            xhr.onerror = function(err) {
+                console.log("[LOG] XHR failed for fileUrl:", fileUrl, err);
+                applyBase64ToForm(fileUrl);
+            };
+            xhr.open('GET', fileUrl);
+            xhr.responseType = 'blob';
+            xhr.send();
+        } catch(e) {
+            console.log("[LOG] XHR exception for fileUrl:", fileUrl, e);
+            applyBase64ToForm(fileUrl);
+        }
+    }
+
+    function applyBase64ToForm(base64Data) {
+        if (!base64Data) return;
+        document.getElementById('photoData').value = base64Data;
+        
+        var displaySrc = base64Data;
+        if (!displaySrc.startsWith('data:') && !displaySrc.startsWith('http') && !displaySrc.startsWith('file:')) {
+            displaySrc = 'file://' + (displaySrc.startsWith('/') ? displaySrc : '/' + displaySrc);
+        }
+        document.getElementById('photoPreviewImg').src = displaySrc;
+        document.getElementById('cameraPrompt').style.display = 'none';
+        document.getElementById('photoPreviewBox').style.display = 'block';
+
+        if (!base64Data.startsWith('data:image')) {
+            readLocalFileViaXHR(displaySrc);
+        }
+    }
+</script>
 
 <!-- ================= BUTTON ================= -->
 
