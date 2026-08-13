@@ -353,7 +353,7 @@ h1{
 
     <!-- ================= BUTTON ================= -->
 
-    <a href="{{ url('/register?school_code=' . $student->schoolcode) }}" class="add-btn">
+    <a href="{{ url('/register?schoolcode=' . $student->schoolcode) }}" class="add-btn">
     Add Another Student
     </a>
 

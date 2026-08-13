@@ -50,7 +50,7 @@ Route::get('/dashboard', function () {
 });
 Route::get('/register', function (Request $request) {
 
-    $schoolCode = $request->school_code;
+    $schoolCode = $request->schoolcode;
 
     $count = Student::count();
 
@@ -65,4 +65,15 @@ Route::get('/success', function () {
 
     return view('success', compact('student','count'));
 
+});
+Route::get('/register', function (Request $request) {
+
+    $schoolCode = $request->schoolcode;
+
+    // Save school code for this session
+    session(['schoolcode' => $schoolCode]);
+
+    $count = Student::where('schoolcode', $schoolCode)->count();
+
+    return view('register', compact('schoolCode', 'count'));
 });
