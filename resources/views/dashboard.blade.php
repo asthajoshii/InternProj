@@ -208,6 +208,10 @@ h1 span{
         Continue
     </button>
 
+    <a href="/students" style="display:block; width:100%; text-align:center; margin-top:14px; padding:14px; background:#f0f4f8; color:#17384a; border-radius:18px; font-weight:bold; font-size:15px; text-decoration:none;">
+        📋 View Saved Forms
+    </a>
+
 </form>
 </div>
 

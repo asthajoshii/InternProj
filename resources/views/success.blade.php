@@ -278,6 +278,12 @@ h1{
 
     <div class="phone">
 
+    <!-- Header / Back Navigation -->
+    <div style="display:flex; align-items:center; justify-content:space-between; width:100%; margin-bottom:14px;">
+        <a href="{{ url('/students') }}" style="width:40px; height:40px; border-radius:50%; background:#f0f4f8; color:#17384a; display:flex; align-items:center; justify-content:center; text-decoration:none; font-size:18px; font-weight:bold;" onclick="if(window.history.length > 1){ window.history.back(); return false; }">←</a>
+        <a href="{{ url('/students') }}" style="text-decoration:none; color:#17384a; font-weight:bold; font-size:14px;">📋 View Saved Forms</a>
+    </div>
+
     <!-- ================= SUCCESS ICON ================= -->
 
     <div class="success-icon">
@@ -308,7 +314,7 @@ h1{
 
             @if(!empty($student->photo))
 
-                <img src="{{ asset('storage/'.$student->photo) }}" alt="Student">
+                <img src="/storage/{{ $student->photo }}" alt="Student">
 
             @else
 
@@ -353,7 +359,7 @@ h1{
 
     <!-- ================= BUTTON ================= -->
 
-    <a href="{{ url('/register?schoolcode=' . $student->schoolcode) }}" class="add-btn">
+    <a href="{{ url('/register?school_code=' . $student->schoolcode) }}" class="add-btn">
     Add Another Student
     </a>
 
