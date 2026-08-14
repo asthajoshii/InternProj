@@ -278,9 +278,12 @@
     <div class="records-list">
         @if(count($students) > 0)
             @foreach($students as $student)
+                @php
+                    $photoSrc = getStudentPhotoSrc($student->photo);
+                @endphp
                 <div class="student-card">
-                    @if($student->photo)
-                        <img src="{{ str_starts_with($student->photo, 'data:') ? $student->photo : '/storage/'.$student->photo }}" class="student-thumb" alt="Photo" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($student->fname.' '.$student->lname) }}&background=17384a&color=fff';" />
+                    @if($photoSrc)
+                        <img src="{{ $photoSrc }}" class="student-thumb" alt="Photo" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($student->fname.' '.$student->lname) }}&background=17384a&color=fff';" />
                     @else
                         <img src="https://ui-avatars.com/api/?name={{ urlencode($student->fname.' '.$student->lname) }}&background=17384a&color=fff" class="student-thumb" alt="Avatar" />
                     @endif

@@ -310,15 +310,18 @@ h1{
 
     <div class="student-card">
 
+        @php
+            $photoSrc = getStudentPhotoSrc($student->photo ?? null);
+        @endphp
         <div class="student-photo">
 
-            @if(!empty($student->photo))
+            @if($photoSrc)
 
-                <img src="/storage/{{ $student->photo }}" alt="Student">
+                <img src="{{ $photoSrc }}" alt="Student">
 
             @else
 
-                <img src="https://via.placeholder.com/80x80.png?text=%F0%9F%91%A4" alt="Student">
+                <img src="https://ui-avatars.com/api/?name={{ urlencode(($student->fname ?? 'S').' '.($student->lname ?? '')) }}&background=17384a&color=fff" alt="Student">
 
             @endif
 
