@@ -53,8 +53,10 @@ Route::post('/students', function (Request $request) {
         $photoData = null;
 
         if (str_starts_with($photoInput, 'data:image')) {
-            $rawBase64 = preg_replace('/^data:image\/\w+;base64,/', '', $photoInput);
-            $photoData = base64_decode(str_replace(' ', '+', $rawBase64));
+            $parts = explode(',', $photoInput, 2);
+            if (count($parts) === 2) {
+                $photoData = base64_decode(str_replace(' ', '+', $parts[1]));
+            }
         } elseif (str_starts_with($photoInput, 'file://')) {
             $filePath = str_replace('file://', '', $photoInput);
             if (file_exists($filePath)) {
@@ -104,6 +106,28 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Native\Mobile\Events\Camera\PhotoTaken;
 use Native\Mobile\Events\Gallery\MediaSelected;
+
+function getStudentPhotoSrc($photo) {
+    if (empty($photo)) {
+        return null;
+    }
+    if (str_starts_with($photo, 'data:image')) {
+        return $photo;
+    }
+
+    $cleanPath = ltrim(str_replace('storage/', '', $photo), '/');
+    $fullPath = storage_path('app/public/' . $cleanPath);
+
+    if (file_exists($fullPath)) {
+        $mime = mime_content_type($fullPath) ?: 'image/png';
+        $data = @file_get_contents($fullPath);
+        if ($data) {
+            return 'data:' . $mime . ';base64,' . base64_encode($data);
+        }
+    }
+
+    return asset('storage/' . $cleanPath);
+}
 
 function getPhotoAsBase64($path) {
     if (!$path) return null;

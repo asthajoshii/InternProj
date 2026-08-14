@@ -614,22 +614,29 @@ form{
 
 <!-- ================= PHOTO ================= -->
 <h3 class="section-title">PHOTO FOR THE CARD</h3>
-<input type="hidden" name="photo" id="photoData" value="{{ old('photo', $student->photo ?? '') }}">
+@php
+    $initialPhoto = getStudentPhotoSrc($student->photo ?? null);
+@endphp
+<input type="hidden" name="photo" id="photoData" value="{{ old('photo', $initialPhoto ?? '') }}">
+
+<!-- Direct hidden file inputs for WebView camera & gallery triggers -->
+<input type="file" id="nativeCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleFileInputSelect(this)">
+<input type="file" id="nativeGalleryInput" accept="image/*" style="display:none;" onchange="handleFileInputSelect(this)">
 
 <div id="cameraArea" style="margin-bottom:30px;">
     <!-- Choice buttons for Camera, Gallery, and File Picker -->
     <div id="cameraPrompt" style="display:flex; flex-direction:column; gap:12px;">
-        <button type="button" onclick="tryNativeBridgePhoto('Camera.GetPhoto')" style="width:100%; padding:16px; background:#17384a; color:white; border:none; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+        <button type="button" onclick="triggerCameraPhoto()" style="width:100%; padding:16px; background:#17384a; color:white; border:none; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
             <span style="font-size:20px;">📷</span> Take Photo with Camera
         </button>
 
-        <button type="button" onclick="tryNativeBridgePhoto('Camera.PickMedia')" style="width:100%; padding:16px; background:#f0f4f8; color:#17384a; border:2px dashed #b0c4de; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+        <button type="button" onclick="triggerGalleryPhoto()" style="width:100%; padding:16px; background:#f0f4f8; color:#17384a; border:2px dashed #b0c4de; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
             <span style="font-size:20px;">🖼️</span> Choose from Gallery
         </button>
 
         <label style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:14px; background:#ffffff; color:#17384a; border:2px solid #17384a; border-radius:18px; font-size:15px; font-weight:bold; cursor:pointer; position:relative; overflow:hidden;">
             <span style="font-size:18px;">📁</span> Select Image File
-            <input type="file" id="localFileInput" onchange="handleFileInputSelect(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.01; cursor:pointer; z-index:10;">
+            <input type="file" id="localFileInput" accept="image/*" onchange="handleFileInputSelect(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.01; cursor:pointer; z-index:10;">
         </label>
     </div>
 
@@ -640,10 +647,10 @@ form{
             <button type="button" onclick="reCropCurrentPhoto()" style="background:#17384a; color:white; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:bold; cursor:pointer;">
                 ✂️ Crop / Adjust
             </button>
-            <button type="button" onclick="tryNativeBridgePhoto('Camera.GetPhoto')" style="background:#f9a43a; color:white; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:bold; cursor:pointer;">
+            <button type="button" onclick="triggerCameraPhoto()" style="background:#f9a43a; color:white; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:bold; cursor:pointer;">
                 📷 Camera
             </button>
-            <button type="button" onclick="tryNativeBridgePhoto('Camera.PickMedia')" style="background:#e0e0e0; color:#333; border:none; border-radius:12px; padding:10px 16px; font-size:13px; cursor:pointer;">
+            <button type="button" onclick="triggerGalleryPhoto()" style="background:#e0e0e0; color:#333; border:none; border-radius:12px; padding:10px 16px; font-size:13px; cursor:pointer;">
                 🖼️ Gallery
             </button>
             <label style="background:#e0e0e0; color:#333; border:none; border-radius:12px; padding:10px 16px; font-size:13px; cursor:pointer; position:relative; display:inline-block;">
@@ -697,7 +704,8 @@ form{
                 console.log("[LOG] Form submit triggered. Photo data length:", document.getElementById('photoData')?.value?.length || 0);
             });
         }
-        // Native event listener (Dispatched directly by Android NativePHP Kotlin container)
+
+        // Native event listener (Dispatched directly by NativePHP Android Kotlin / iOS Swift container)
         document.addEventListener("native-event", function (e) {
             console.log("[LOG] native-event received in JS:", e.detail);
             var eventName = e.detail?.event || '';
@@ -711,7 +719,7 @@ form{
             }
 
             if (photoPath) {
-                console.log("[LOG] Direct native photo path captured from Android container:", photoPath);
+                console.log("[LOG] Direct native photo path captured from container:", photoPath);
                 processNativePhotoPath(photoPath);
             }
         });
@@ -742,12 +750,29 @@ form{
 
     var photoPollInterval = null;
 
+    function triggerCameraPhoto() {
+        console.log("[LOG] Triggering Camera Photo");
+        const cameraInput = document.getElementById('nativeCameraInput');
+        if (cameraInput) {
+            cameraInput.value = '';
+            cameraInput.click();
+        }
+    }
+
+    function triggerGalleryPhoto() {
+        console.log("[LOG] Triggering Gallery Photo");
+        const galleryInput = document.getElementById('nativeGalleryInput');
+        if (galleryInput) {
+            galleryInput.value = '';
+            galleryInput.click();
+        }
+    }
+
     async function tryNativeBridgePhoto(method = 'Camera.GetPhoto') {
         console.log("[LOG] Invoking NativePHP Bridge method:", method);
         
         try { fetch('/check-photo?clear=1'); } catch(e){}
 
-        // Fallback polling in case native-event listener isn't hit directly
         if (photoPollInterval) clearInterval(photoPollInterval);
         let pollCount = 0;
         photoPollInterval = setInterval(async function() {
@@ -798,7 +823,11 @@ form{
             }
             var reader = new FileReader();
             reader.onload = function(e) {
-                openCropperModal(e.target.result);
+                if (e.target && e.target.result) {
+                    console.log("[LOG] FileReader successfully loaded image file as Base64 (length: " + e.target.result.length + ")");
+                    applyBase64ToForm(e.target.result);
+                    openCropperModal(e.target.result);
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -810,24 +839,33 @@ form{
 
         var modal = document.getElementById('cropperModal');
         var image = document.getElementById('cropperImage');
+        if (!modal || !image) return;
+
         image.src = imageSrc;
         modal.style.display = 'flex';
 
         if (cropperInstance) {
-            cropperInstance.destroy();
+            try { cropperInstance.destroy(); } catch(e){}
             cropperInstance = null;
         }
 
-        setTimeout(function() {
+        function initCropperWithRetry(attempts = 0) {
             if (typeof Cropper !== 'undefined') {
                 cropperInstance = new Cropper(image, {
                     aspectRatio: 1,
                     viewMode: 1,
                     autoCropArea: 0.9,
-                    responsive: true
+                    responsive: true,
+                    checkOrientation: true
                 });
+            } else if (attempts < 10) {
+                setTimeout(function() { initCropperWithRetry(attempts + 1); }, 150);
             }
-        }, 100);
+        }
+
+        setTimeout(function() {
+            initCropperWithRetry();
+        }, 50);
     }
 
     function rotateCropper(deg) {
@@ -911,14 +949,14 @@ form{
                                 console.log("[LOG] FileReader blob converted mobile photo to Base64 (length: " + reader.result.length + ")");
                                 resolve(reader.result);
                             } else {
-                                resolve(formattedPath);
+                                resolve(null);
                             }
                         };
                         reader.readAsDataURL(blob);
                     })
                     .catch(err => {
                         console.log("[LOG] Fetch blob error for path:", formattedPath, err);
-                        resolve(formattedPath);
+                        resolve(null);
                     });
             }
 
@@ -944,34 +982,9 @@ form{
             } catch(e) {}
         }
 
-        applyBase64ToForm(base64Data);
-        openCropperModal(base64Data);
-    }
-
-    function readLocalFileViaXHR(fileUrl) {
-        try {
-            var xhr = new XMLHttpRequest();
-            xhr.onload = function() {
-                var reader = new FileReader();
-                reader.onloadend = function() {
-                    if (reader.result) {
-                        console.log("[LOG] XHR converted file to Base64 (length: " + reader.result.length + ")");
-                        applyBase64ToForm(reader.result);
-                        openCropperModal(reader.result);
-                    }
-                };
-                reader.readAsDataURL(xhr.response);
-            };
-            xhr.onerror = function(err) {
-                console.log("[LOG] XHR failed for fileUrl:", fileUrl, err);
-                applyBase64ToForm(fileUrl);
-            };
-            xhr.open('GET', fileUrl);
-            xhr.responseType = 'blob';
-            xhr.send();
-        } catch(e) {
-            console.log("[LOG] XHR exception for fileUrl:", fileUrl, e);
-            applyBase64ToForm(fileUrl);
+        if (base64Data && base64Data.startsWith('data:image')) {
+            applyBase64ToForm(base64Data);
+            openCropperModal(base64Data);
         }
     }
 
@@ -986,10 +999,6 @@ form{
         document.getElementById('photoPreviewImg').src = displaySrc;
         document.getElementById('cameraPrompt').style.display = 'none';
         document.getElementById('photoPreviewBox').style.display = 'block';
-
-        if (!base64Data.startsWith('data:image')) {
-            readLocalFileViaXHR(displaySrc);
-        }
     }
 </script>
 
