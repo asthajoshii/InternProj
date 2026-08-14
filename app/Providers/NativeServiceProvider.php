@@ -35,6 +35,8 @@ class NativeServiceProvider extends ServiceProvider
     {
         return [
             \Native\Mobile\Providers\CameraServiceProvider::class,
+            \Native\Mobile\Providers\ShareServiceProvider::class,
+        
         
         ];
     }

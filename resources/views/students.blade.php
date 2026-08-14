@@ -236,6 +236,7 @@
             display: block;
         }
     </style>
+    @livewireStyles
 </head>
 <body>
 
@@ -272,6 +273,12 @@
             @endforeach
         </div>
         @endif
+
+            <form method="POST" action="{{ route('students.export') }}">
+            @csrf
+            <input type="hidden" name="schoolcode" value="{{ $schoolCode ?? '' }}">
+            <button type="submit" class="filter-btn" style="width:100%;">📤 Export to Excel</button>
+            </form>
     </div>
 
     <!-- Student Cards List -->
@@ -322,6 +329,6 @@
     </a>
 
 </div>
-
+ @livewireScripts
 </body>
 </html>

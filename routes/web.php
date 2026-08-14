@@ -2,6 +2,9 @@
 use Illuminate\Support\Facades\Route;
 use App\Models\Student;
 use Illuminate\Http\Request;
+use App\Exports\StudentsExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Native\Mobile\Facades\Share;
 
 
 Route::get('/', function () {
@@ -22,6 +25,26 @@ Route::get('/students', function (Request $request) {
 
     return view('students', compact('students', 'count', 'schoolCode', 'schools'));
 });
+
+// Route to handle the export of students to Excel
+Route::post('/students/export', function (Request $request) {
+    $schoolCode = $request->input('schoolcode') ?: null;
+
+    $fileName = 'students_export_' . now()->format('Y-m-d_His') . '.xlsx';
+    $relativePath = 'exports/' . $fileName;
+
+    Excel::store(new StudentsExport($schoolCode), $relativePath, 'local');
+
+    $fullPath = storage_path('app/' . $relativePath);
+
+    Share::files([$fullPath])
+        ->message('Student records export')
+        ->dispatch();
+
+    return redirect('/students' . ($schoolCode ? '?schoolcode=' . urlencode($schoolCode) : ''));
+})->name('students.export');
+
+//end 
 
 Route::post('/students', function (Request $request) {
     $request->validate([
