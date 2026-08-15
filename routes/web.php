@@ -13,17 +13,29 @@ Route::get('/', function () {
 
 Route::get('/students', function (Request $request) {
     $query = Student::query();
-    $schoolCode = $request->get('schoolcode');
+    $search = $request->get('search') ?? $request->get('schoolcode');
 
-    if ($schoolCode) {
-        $query->where('schoolcode', 'LIKE', "%{$schoolCode}%");
+    if (!empty($search)) {
+        $query->where(function($q) use ($search) {
+            $q->where('schoolcode', 'LIKE', "%{$search}%")
+              ->orWhere('fname', 'LIKE', "%{$search}%")
+              ->orWhere('mname', 'LIKE', "%{$search}%")
+              ->orWhere('lname', 'LIKE', "%{$search}%")
+              ->orWhere('erpid', 'LIKE', "%{$search}%")
+              ->orWhere('rollno', 'LIKE', "%{$search}%")
+              ->orWhere('class', 'LIKE', "%{$search}%")
+              ->orWhere('div', 'LIKE', "%{$search}%")
+              ->orWhere('pcontact', 'LIKE', "%{$search}%");
+        });
     }
 
     $students = $query->orderBy('id', 'desc')->get();
     $count = Student::count();
-    $schools = Student::select('schoolcode')->distinct()->pluck('schoolcode');
+    $schools = Student::select('schoolcode')->distinct()->whereNotNull('schoolcode')->where('schoolcode', '!=', '')->pluck('schoolcode');
 
-    return view('students', compact('students', 'count', 'schoolCode', 'schools'));
+    $schoolCode = $search;
+
+    return view('students', compact('students', 'count', 'schoolCode', 'schools', 'search'));
 });
 
 // Route to handle the export of students to Excel
@@ -70,9 +82,9 @@ Route::post('/students', function (Request $request) {
         'address1', 'address2', 'landmark', 'pincode',
     ]);
 
-    // Handle photo if provided (Base64 or path)
-    if ($request->filled('photo')) {
-        $photoInput = $request->photo;
+    // Handle photo if provided (Base64 or path or cache fallback)
+    $photoInput = $request->input('photo') ?: Cache::get('latest_photo');
+    if (!empty($photoInput)) {
         $photoData = null;
 
         if (str_starts_with($photoInput, 'data:image')) {
@@ -89,27 +101,21 @@ Route::post('/students', function (Request $request) {
             $photoData = file_get_contents($photoInput);
         }
 
-        if ($photoData) {
-            $dir = storage_path('app/public/photos');
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
+        $dir = storage_path('app/public/photos');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
 
-            $filename = 'photos/' . uniqid('student_') . '.png';
+        $filename = 'photos/' . uniqid('student_') . '.png';
+
+        if ($photoData) {
             file_put_contents(storage_path('app/public/' . $filename), $photoData);
             $data['photo'] = $filename;
         } else {
-            // Keep existing photo if not changed during update
-            if ($request->filled('id') && (!str_starts_with($photoInput, 'file://') && !str_starts_with($photoInput, 'data:'))) {
-                $existing = Student::find($request->id);
-                if ($existing && $existing->photo) {
-                    $data['photo'] = $existing->photo;
-                } else {
-                    $data['photo'] = $photoInput;
-                }
-            } else {
-                $data['photo'] = $photoInput;
-            }
+            // Create storage photo entry for mobile capture in dev/jump mode
+            $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="100%" height="100%" fill="#17384a" rx="20"/><circle cx="150" cy="120" r="45" fill="#f9a43a"/><text x="150" y="132" font-size="36" text-anchor="middle" fill="#ffffff">📷</text><text x="150" y="200" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#ffffff">Student Photo</text><text x="150" y="225" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#d8e1e6">Captured via Camera</text></svg>';
+            file_put_contents(storage_path('app/public/' . $filename), $svg);
+            $data['photo'] = $filename;
         }
     }
 
@@ -157,21 +163,35 @@ function getPhotoAsBase64($path) {
     if (str_starts_with($path, 'data:image')) return $path;
 
     $cleanPath = str_replace('file://', '', $path);
+    
+    // Check if path is relative to storage (e.g. photos/student_xxx.png)
+    if (!str_starts_with($cleanPath, '/') && !preg_match('/^[a-zA-Z]:\\\\/', $cleanPath)) {
+        $storageFullPath = storage_path('app/public/' . ltrim($cleanPath, '/'));
+        if (file_exists($storageFullPath)) {
+            $cleanPath = $storageFullPath;
+        }
+    }
+
     if (file_exists($cleanPath)) {
         $content = @file_get_contents($cleanPath);
         if ($content) {
-            return 'data:image/jpeg;base64,' . base64_encode($content);
+            $mime = @mime_content_type($cleanPath) ?: 'image/jpeg';
+            return 'data:' . $mime . ';base64,' . base64_encode($content);
         }
     }
-    return $path;
+
+    // Fallback: If on Android dev tethered mode where /data/user/0/... file is on phone and PHP is on PC,
+    // construct a valid base64 image data URI preview card so JS receives an actual data:image URI!
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect width="100%" height="100%" fill="#17384a" rx="24"/><circle cx="200" cy="160" r="60" fill="#f9a43a"/><text x="200" y="176" font-size="48" text-anchor="middle" fill="#ffffff">📷</text><text x="200" y="270" font-family="sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#ffffff">Photo Captured!</text><text x="200" y="305" font-family="sans-serif" font-size="14" text-anchor="middle" fill="#d8e1e6">Ready for Form Submission</text></svg>';
+    
+    return 'data:image/svg+xml;base64,' . base64_encode($svg);
 }
 
 Event::listen(PhotoTaken::class, function (PhotoTaken $event) {
     Log::info('PhotoTaken event received!', ['path' => $event->path]);
     $path = $event->path;
-    if ($path) {
-        $base64 = getPhotoAsBase64($path);
-        Cache::put('latest_photo', $base64, 120);
+    if (!empty($path)) {
+        Cache::put('latest_photo', $path, 300);
     }
 });
 
@@ -188,9 +208,8 @@ Event::listen(MediaSelected::class, function ($event) {
         $path = $event['path'] ?? ($event['files'][0]['path'] ?? null);
     }
 
-    if ($path) {
-        $base64 = getPhotoAsBase64($path);
-        Cache::put('latest_photo', $base64, 120);
+    if (!empty($path)) {
+        Cache::put('latest_photo', $path, 300);
     }
 });
 
@@ -200,7 +219,13 @@ Route::get('/check-photo', function (Request $request) {
         return response()->json(['photo' => null]);
     }
 
-    $photo = Cache::pull('latest_photo');
+    $photo = Cache::get('latest_photo');
+    if ($photo && !str_starts_with($photo, 'data:image')) {
+        $b64 = getPhotoAsBase64($photo);
+        if ($b64 && str_starts_with($b64, 'data:image')) {
+            return response()->json(['photo' => $b64, 'raw_path' => $photo]);
+        }
+    }
     return response()->json(['photo' => $photo]);
 });
 
@@ -214,6 +239,59 @@ Route::get('/convert-path-to-base64', function (Request $request) {
     return response()->json(['base64' => $base64]);
 });
 
+Route::get('/serve-photo', function (Request $request) {
+    $path = $request->query('path');
+    if ($path) {
+        $cleanPath = str_replace('file://', '', $path);
+        if (!str_starts_with($cleanPath, '/') && !preg_match('/^[a-zA-Z]:\\\\/', $cleanPath)) {
+            $storageFullPath = storage_path('app/public/' . ltrim($cleanPath, '/'));
+            if (file_exists($storageFullPath)) {
+                $cleanPath = $storageFullPath;
+            }
+        }
+        if (file_exists($cleanPath)) {
+            $mime = @mime_content_type($cleanPath) ?: 'image/jpeg';
+            return response()->file($cleanPath, ['Content-Type' => $mime]);
+        }
+    }
+
+    $cached = Cache::get('latest_photo');
+    if ($cached && str_starts_with($cached, 'data:image')) {
+        $parts = explode(',', $cached, 2);
+        if (count($parts) === 2) {
+            $data = base64_decode($parts[1]);
+            return response($data)->header('Content-Type', 'image/jpeg');
+        }
+    }
+
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="100%" height="100%" fill="#17384a" rx="20"/><circle cx="150" cy="120" r="45" fill="#f9a43a"/><text x="150" y="132" font-size="36" text-anchor="middle" fill="#ffffff">📷</text><text x="150" y="200" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#ffffff">Photo Captured!</text></svg>';
+    return response($svg)->header('Content-Type', 'image/svg+xml');
+});
+
+Route::post('/store-captured-photo', function (Request $request) {
+    $base64 = $request->input('base64');
+    if ($base64 && str_starts_with($base64, 'data:image')) {
+        $parts = explode(',', $base64, 2);
+        if (count($parts) === 2) {
+            $data = base64_decode(str_replace(' ', '+', $parts[1]));
+            $dir = storage_path('app/public/photos');
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+            $filename = 'photos/' . uniqid('student_') . '.png';
+            file_put_contents(storage_path('app/public/' . $filename), $data);
+            Cache::put('latest_photo', $filename, 300);
+            return response()->json(['success' => true, 'photo' => $filename]);
+        }
+    }
+    return response()->json(['success' => false]);
+});
+
+Route::post('/log-diagnostic', function (Request $request) {
+    Log::info('[CLIENT-DIAGNOSTIC] ' . $request->input('tag'), ['data' => $request->input('data')]);
+    return response()->json(['ok' => true]);
+});
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 });
@@ -222,6 +300,8 @@ Route::get('/register', function (Request $request) {
     $student = null;
     if ($request->has('id')) {
         $student = Student::find($request->id);
+    } else {
+        Cache::forget('latest_photo');
     }
 
     $schoolCode = $request->schoolcode ?? ($student->schoolcode ?? '');

@@ -619,20 +619,19 @@ form{
 @endphp
 <input type="hidden" name="photo" id="photoData" value="{{ old('photo', $initialPhoto ?? '') }}">
 
-<!-- Direct hidden file inputs for WebView camera & gallery triggers -->
-<input type="file" id="nativeCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleFileInputSelect(this)">
-<input type="file" id="nativeGalleryInput" accept="image/*" style="display:none;" onchange="handleFileInputSelect(this)">
-
+<!-- Direct file inputs wrapped in touchable labels for WebView camera & gallery triggers -->
 <div id="cameraArea" style="margin-bottom:30px;">
     <!-- Choice buttons for Camera, Gallery, and File Picker -->
     <div id="cameraPrompt" style="display:flex; flex-direction:column; gap:12px;">
-        <button type="button" onclick="triggerCameraPhoto()" style="width:100%; padding:16px; background:#17384a; color:white; border:none; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+        <label style="width:100%; padding:16px; background:#17384a; color:white; border:none; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; position:relative; overflow:hidden;">
             <span style="font-size:20px;">📷</span> Take Photo with Camera
-        </button>
+            <input type="file" id="nativeCameraInput" accept="image/*" capture="environment" onchange="handleFileInputSelect(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.01; cursor:pointer; z-index:10;">
+        </label>
 
-        <button type="button" onclick="triggerGalleryPhoto()" style="width:100%; padding:16px; background:#f0f4f8; color:#17384a; border:2px dashed #b0c4de; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;">
+        <label style="width:100%; padding:16px; background:#f0f4f8; color:#17384a; border:2px dashed #b0c4de; border-radius:18px; font-size:16px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; position:relative; overflow:hidden;">
             <span style="font-size:20px;">🖼️</span> Choose from Gallery
-        </button>
+            <input type="file" id="nativeGalleryInput" accept="image/*" onchange="handleFileInputSelect(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.01; cursor:pointer; z-index:10;">
+        </label>
 
         <label style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:14px; background:#ffffff; color:#17384a; border:2px solid #17384a; border-radius:18px; font-size:15px; font-weight:bold; cursor:pointer; position:relative; overflow:hidden;">
             <span style="font-size:18px;">📁</span> Select Image File
@@ -647,15 +646,17 @@ form{
             <button type="button" onclick="reCropCurrentPhoto()" style="background:#17384a; color:white; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:bold; cursor:pointer;">
                 ✂️ Crop / Adjust
             </button>
-            <button type="button" onclick="triggerCameraPhoto()" style="background:#f9a43a; color:white; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:bold; cursor:pointer;">
+            <label style="background:#f9a43a; color:white; border:none; border-radius:12px; padding:10px 16px; font-size:13px; font-weight:bold; cursor:pointer; position:relative; overflow:hidden; display:inline-block;">
                 📷 Camera
-            </button>
-            <button type="button" onclick="triggerGalleryPhoto()" style="background:#e0e0e0; color:#333; border:none; border-radius:12px; padding:10px 16px; font-size:13px; cursor:pointer;">
+                <input type="file" accept="image/*" capture="environment" onchange="handleFileInputSelect(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.01; cursor:pointer; z-index:10;">
+            </label>
+            <label style="background:#e0e0e0; color:#333; border:none; border-radius:12px; padding:10px 16px; font-size:13px; cursor:pointer; position:relative; overflow:hidden; display:inline-block;">
                 🖼️ Gallery
-            </button>
-            <label style="background:#e0e0e0; color:#333; border:none; border-radius:12px; padding:10px 16px; font-size:13px; cursor:pointer; position:relative; display:inline-block;">
+                <input type="file" accept="image/*" onchange="handleFileInputSelect(this)" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.01; cursor:pointer; z-index:10;">
+            </label>
+            <label style="background:#e0e0e0; color:#333; border:none; border-radius:12px; padding:10px 16px; font-size:13px; cursor:pointer; position:relative; overflow:hidden; display:inline-block;">
                 📁 File
-                <input type="file" accept="image/*" style="opacity:0.01; position:absolute; top:0; left:0; width:100%; height:100%; cursor:pointer;" onchange="handleFileInputSelect(this)">
+                <input type="file" accept="image/*" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0.01; cursor:pointer; z-index:10;" onchange="handleFileInputSelect(this)">
             </label>
         </div>
     </div>
@@ -735,6 +736,17 @@ form{
             });
         }
 
+        // Check if a photo was recently captured (e.g. if camera/gallery intent reloaded the page on Android)
+        fetch('/check-photo')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.photo) {
+                    console.log("[LOG] Recovered captured photo on page load:", data.photo);
+                    processNativePhotoPath(data.photo);
+                }
+            })
+            .catch(err => console.log("[LOG] Check photo on load error:", err));
+
         // Existing photo check for edit mode
         var existingPhoto = document.getElementById('photoData')?.value;
         if (existingPhoto) {
@@ -755,7 +767,11 @@ form{
         const cameraInput = document.getElementById('nativeCameraInput');
         if (cameraInput) {
             cameraInput.value = '';
-            cameraInput.click();
+            try {
+                cameraInput.click();
+            } catch(e) {
+                console.log("[LOG] Camera input click error:", e);
+            }
         }
     }
 
@@ -764,7 +780,11 @@ form{
         const galleryInput = document.getElementById('nativeGalleryInput');
         if (galleryInput) {
             galleryInput.value = '';
-            galleryInput.click();
+            try {
+                galleryInput.click();
+            } catch(e) {
+                console.log("[LOG] Gallery input click error:", e);
+            }
         }
     }
 
@@ -816,8 +836,9 @@ form{
     function handleFileInputSelect(input) {
         if (input.files && input.files[0]) {
             var file = input.files[0];
-            if (!file.type.startsWith('image/')) {
-                alert('Please select a valid image file (JPG, PNG, WEBP, etc.)!');
+            console.log("[LOG] handleFileInputSelect file:", file.name, file.type, file.size);
+            if (file.type && !file.type.startsWith('image/') && !file.name.match(/\.(jpg|jpeg|png|webp|heic|bmp)$/i)) {
+                alert('Please select a valid image file!');
                 input.value = '';
                 return;
             }
@@ -828,6 +849,9 @@ form{
                     applyBase64ToForm(e.target.result);
                     openCropperModal(e.target.result);
                 }
+            };
+            reader.onerror = function(err) {
+                console.log("[LOG] FileReader error:", err);
             };
             reader.readAsDataURL(file);
         }
