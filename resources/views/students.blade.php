@@ -258,37 +258,46 @@
 
     <!-- Filter Box -->
     <div class="filter-box">
-        <form method="GET" action="/students" class="filter-form">
-            <input type="text" name="schoolcode" class="filter-input" placeholder="Search School Code..." value="{{ $schoolCode ?? '' }}">
+        <form method="GET" action="/students" class="filter-form" style="position:relative; width:100%;">
+            <input type="text" 
+                   id="studentSearchInput" 
+                   name="search" 
+                   class="filter-input" 
+                   placeholder="Search Name, ERP, Roll No, School..." 
+                   value="{{ $search ?? $schoolCode ?? '' }}" 
+                   autocomplete="off">
+            @if(!empty($search ?? $schoolCode ?? ''))
+                <a href="/students" style="position:absolute; right:85px; top:50%; transform:translateY(-50%); color:#94a3b8; text-decoration:none; font-weight:bold; font-size:16px; padding:4px 8px;">✕</a>
+            @endif
             <button type="submit" class="filter-btn">Search</button>
         </form>
 
         @if(isset($schools) && count($schools) > 0)
         <div class="school-tags">
-            <a href="/students" class="school-tag {{ empty($schoolCode) ? 'active' : '' }}">All Schools</a>
+            <a href="/students" class="school-tag {{ empty($search) ? 'active' : '' }}">All Schools</a>
             @foreach($schools as $sch)
-                <a href="/students?schoolcode={{ $sch }}" class="school-tag {{ ($schoolCode ?? '') == $sch ? 'active' : '' }}">
+                <a href="/students?search={{ urlencode($sch) }}" class="school-tag {{ ($search ?? '') == $sch ? 'active' : '' }}">
                     {{ $sch }}
                 </a>
             @endforeach
         </div>
         @endif
 
-            <form method="POST" action="{{ route('students.export') }}">
+        <form method="POST" action="{{ route('students.export') }}">
             @csrf
-            <input type="hidden" name="schoolcode" value="{{ $schoolCode ?? '' }}">
+            <input type="hidden" name="schoolcode" value="{{ $search ?? $schoolCode ?? '' }}">
             <button type="submit" class="filter-btn" style="width:100%;">📤 Export to Excel</button>
-            </form>
+        </form>
     </div>
 
     <!-- Student Cards List -->
-    <div class="records-list">
+    <div class="records-list" id="recordsList">
         @if(count($students) > 0)
             @foreach($students as $student)
                 @php
                     $photoSrc = getStudentPhotoSrc($student->photo);
                 @endphp
-                <div class="student-card">
+                <div class="student-card" data-search="{{ strtolower($student->fname.' '.$student->mname.' '.$student->lname.' '.$student->erpid.' '.$student->rollno.' '.$student->schoolcode.' '.$student->class.' '.$student->div.' '.$student->pcontact) }}">
                     @if($photoSrc)
                         <img src="{{ $photoSrc }}" class="student-thumb" alt="Photo" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($student->fname.' '.$student->lname) }}&background=17384a&color=fff';" />
                     @else
@@ -314,6 +323,12 @@
                     </a>
                 </div>
             @endforeach
+            
+            <div id="noMatchMessage" class="empty-state" style="display:none;">
+                <p style="font-size:32px; margin-bottom:8px;">🔍</p>
+                <p style="font-weight:bold; color:#17384a;">No matching records</p>
+                <p style="font-size:13px; margin-top:4px;">Try searching for a different name, ERP, or school code.</p>
+            </div>
         @else
             <div class="empty-state">
                 <p style="font-size:32px; margin-bottom:8px;">📋</p>
@@ -329,6 +344,36 @@
     </a>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('studentSearchInput');
+    const cards = document.querySelectorAll('.student-card');
+    const noMatch = document.getElementById('noMatchMessage');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            let count = 0;
+
+            cards.forEach(card => {
+                const searchData = card.getAttribute('data-search') || '';
+                if (searchData.includes(query)) {
+                    card.style.display = 'flex';
+                    count++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            if (noMatch) {
+                noMatch.style.display = (count === 0 && cards.length > 0) ? 'block' : 'none';
+            }
+        });
+    }
+});
+</script>
+
  @livewireScripts
 </body>
 </html>
