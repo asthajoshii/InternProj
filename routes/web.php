@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use App\Exports\StudentsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Native\Mobile\Facades\Share;
+use Illuminate\Support\Facades\Storage; 
 
 
 Route::get('/', function () {
@@ -47,13 +48,21 @@ Route::post('/students/export', function (Request $request) {
 
     Excel::store(new StudentsExport($schoolCode), $relativePath, 'local');
 
-    $fullPath = storage_path('app/' . $relativePath);
+    $fullPath = Storage::disk('local')->path($relativePath);
 
-    Share::files([$fullPath])
-        ->message('Student records export')
-        ->dispatch();
+    try {
+        // Works only when running inside the built native app
+        Share::files([$fullPath])
+            ->message('Student records export')
+            ->dispatch();
 
-    return redirect('/students' . ($schoolCode ? '?schoolcode=' . urlencode($schoolCode) : ''));
+        return redirect('/students' . ($schoolCode ? '?schoolcode=' . urlencode($schoolCode) : ''));
+    }  catch (\Throwable $e) {
+    return response(
+        '<h2>Export failed</h2><pre style="white-space:pre-wrap;">' . htmlspecialchars($e->getMessage()) . '</pre>',
+        500
+    );
+}
 })->name('students.export');
 
 //end 
