@@ -65,6 +65,10 @@ Route::post('/students/export', function (Request $request) {
 }
 })->name('students.export');
 
+Route::get('/students/export', function () {
+    return redirect('/students');
+});
+
 //end 
 
 Route::post('/students', function (Request $request) {
