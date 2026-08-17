@@ -50,19 +50,9 @@ Route::post('/students/export', function (Request $request) {
 
     $fullPath = Storage::disk('local')->path($relativePath);
 
-    try {
-        // Works only when running inside the built native app
-        Share::files([$fullPath])
-            ->message('Student records export')
-            ->dispatch();
-
-        return redirect('/students' . ($schoolCode ? '?schoolcode=' . urlencode($schoolCode) : ''));
-    }  catch (\Throwable $e) {
-    return response(
-        '<h2>Export failed</h2><pre style="white-space:pre-wrap;">' . htmlspecialchars($e->getMessage()) . '</pre>',
-        500
-    );
-}
+    return response()->download($fullPath, $fileName, [
+        'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ]);
 })->name('students.export');
 
 Route::get('/students/export', function () {
