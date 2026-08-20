@@ -1,4 +1,6 @@
 <?php
+
+use App\Services\SchoolConfig;
 use Illuminate\Support\Facades\Route;
 use App\Models\Student;
 use Illuminate\Http\Request;
@@ -8,9 +10,45 @@ use Native\Mobile\Facades\Share;
 use Illuminate\Support\Facades\Storage; 
 
 
-Route::get('/', function () {
+/*Route::get('/', function () {
     return view('dashboard');
+});*/
+
+// Route to select school code and load its config
+Route::get('/', function () {
+    $schools = [];
+
+    foreach (glob(storage_path('app/schools/*.json')) as $file) {
+        $data = json_decode(file_get_contents($file), true);
+
+        if (isset($data['school_code'], $data['school_name'])) {
+            $schools[] = [
+                'code' => $data['school_code'],
+                'name' => $data['school_name'],
+            ];
+        }
+    }
+
+    return view('dashboard', compact('schools'));
 });
+
+Route::post('/dashboard', function (Request $request) {
+    $request->validate([
+        'school_code' => 'required|string',
+    ]);
+
+    try {
+        $config = SchoolConfig::load($request->input('school_code'));
+    } catch (\Throwable $e) {
+        return back()->withErrors(['school_code' => $e->getMessage()]);
+    }
+
+        session(['school_code' => $config->schoolCode()]);
+        app()->setLocale($config->language());
+
+        return redirect('/register');
+});
+//end
 
 Route::get('/students', function (Request $request) {
     $query = Student::query();
@@ -295,22 +333,45 @@ Route::post('/log-diagnostic', function (Request $request) {
     return response()->json(['ok' => true]);
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-});
-
 Route::get('/register', function (Request $request) {
     $student = null;
+
     if ($request->has('id')) {
         $student = Student::find($request->id);
     } else {
         Cache::forget('latest_photo');
     }
 
-    $schoolCode = $request->schoolcode ?? ($student->schoolcode ?? '');
+    $schoolCodeFromSession = session('school_code');
+
+    if (!$schoolCodeFromSession) {
+        return redirect('/')
+            ->withErrors([
+                'school_code' => 'Please select a school first.'
+            ]);
+    }
+
+    try {
+        $config = SchoolConfig::load($schoolCodeFromSession);
+    } catch (\Throwable $e) {
+        return redirect('/')
+            ->withErrors([
+                'school_code' => $e->getMessage()
+            ]);
+    }
+    app()->setLocale($config->language());
+
+    $schoolCode = $request->schoolcode
+        ?? ($student->schoolcode ?? $config->schoolCode());
+
     $count = Student::count();
 
-    return view('register', compact('student', 'schoolCode', 'count'));
+    return view('register', compact(
+        'student',
+        'schoolCode',
+        'count',
+        'config'
+    ));
 });
 
 Route::get('/students/{id}/edit', function ($id) {

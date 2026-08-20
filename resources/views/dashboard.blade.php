@@ -182,18 +182,53 @@ h1 span{
     ID card batch.
 </p>
 
-<form method="GET" action="/register">
+<form method="POST" action="{{ url('/dashboard') }}">
+
+    @csrf
 
     <div class="school-code">
-        <label>SCHOOL CODE</label>
+        <label>SELECT SCHOOL</label>
 
-        <input
-            type="text"
-            name="schoolcode"
-            placeholder="SVM204"
-            maxlength="6"
-            required>
+        <select
+            name="school_code"
+            required
+            style="
+                width:100%;
+                height:70px;
+                border:1px solid #dddddd;
+                border-radius:18px;
+                padding:0 20px;
+                font-size:17px;
+                font-weight:bold;
+                color:#17384a;
+                background:white;
+                outline:none;
+            "
+        >
+            <option value="">Select a school...</option>
+
+            @foreach($schools as $school)
+                <option value="{{ $school['code'] }}"
+                    {{ old('school_code') == $school['code'] ? 'selected' : '' }}>
+                    {{ $school['name'] }} ({{ $school['code'] }})
+                </option>
+            @endforeach
+        </select>
     </div>
+
+    @error('school_code')
+        <div style="
+            margin-top:10px;
+            background:#fee2e2;
+            border:1px solid #fca5a5;
+            color:#991b1b;
+            padding:12px 14px;
+            border-radius:12px;
+            font-size:13px;
+        ">
+            {{ $message }}
+        </div>
+    @enderror
 
     <div class="info-box">
         <div class="info-icon">i</div>

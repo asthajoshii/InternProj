@@ -382,7 +382,7 @@ form{
 
             <div class="field">
 
-                <label>ERP ID</label>
+                <label>{{ __('students.erp_id') }}</label>
 
                 <input
                     type="text"
@@ -395,7 +395,7 @@ form{
 
             <div class="field">
 
-                <label>ROLL NO.</label>
+                <label>{{ __('students.roll_no') }}</label>
 
                 <input
                     type="text"
@@ -412,7 +412,7 @@ form{
 
             <div class="field">
 
-                <label>FIRST NAME</label>
+                <label>{{ __('students.fname') }}</label>
 
                 <input
                     type="text"
@@ -425,7 +425,7 @@ form{
 
             <div class="field">
 
-                <label>MIDDLE NAME</label>
+                <label>{{ __('students.mname') }}</label>
 
                 <input
                     type="text"
@@ -439,7 +439,7 @@ form{
 
         <div class="field">
 
-            <label>LAST NAME</label>
+            <label>{{ __('students.lname') }}</label>
 
             <input
                 type="text"
@@ -472,7 +472,7 @@ form{
 
         <div class="field">
 
-            <label>STANDARD</label>
+            <label>{{ __('students.standard') }}</label>
 
             <select name="class" required>
 
@@ -488,7 +488,7 @@ form{
 
         <div class="field">
 
-            <label>DIVISION</label>
+            <label>{{ __('students.division') }}</label>
 
             <select name="div" required>
 
@@ -506,7 +506,7 @@ form{
 
             <div class="field">
 
-                <label>DATE OF BIRTH</label>
+                <label>{{ __('students.dob') }}</label>
 
                 <input
                     type="date"
@@ -519,7 +519,7 @@ form{
 
             <div class="field">
 
-                <label>BLOOD GROUP</label>
+                <label>{{ __('students.bloodgroup') }}</label>
 
                 <select name="bloodgroup">
 
@@ -540,12 +540,12 @@ form{
 
         <div class="field">
 
-            <label>PARENT NAME</label>
+            <label>{{ __('students.pname') }}</label>
 
             <input
                 type="text"
                 name="pname"
-                placeholder="Parent Name"
+                placeholder="{{ __('students.pname') }}"
                 value="{{ old('pname', $student->pname ?? '') }}"
                 required>
 
@@ -553,13 +553,13 @@ form{
 
         <div class="field">
 
-            <label>MOBILE NUMBER</label>
+            <label>{{ __('students.pcontact') }}</label>
 
             <input
                 type="text"
                 name="pcontact"
                 id="pcontact"
-                placeholder="9876543210"
+                placeholder="{{ __('students.pcontact') }}"
                 maxlength="10"
                 value="{{ old('pcontact', $student->pcontact ?? '') }}"
                 required>
@@ -568,49 +568,46 @@ form{
         </div>
 
 
-        <!-- ================= ADDRESS ================= -->
+<!-- ================= ADDRESS ================= -->
 
-        <h3 class="section-title">ADDRESS</h3>
-        <div class="field">
-       <input
-    type="text"
-    name="address1"
-    placeholder="Flat / house no., building"
-    value="{{ old('address1', $student->address1 ?? '') }}"
-    required>
-    </div>
+@if($config->isVisible('address'))
+<h3 class="section-title">{{ __('students.address') }}</h3>
 <div class="field">
-<input
-    type="text"
-    name="address2"
-    placeholder="Street, area"
-    value="{{ old('address2', $student->address2 ?? '') }}">
+    <input
+        type="text"
+        name="address1"
+        placeholder="Flat / house no., building"
+        value="{{ old('address1', $student->address1 ?? '') }}"
+        required>
+</div>
+
+<div class="field">
+    <input
+        type="text"
+        name="address2"
+        placeholder="Street, area"
+        value="{{ old('address2', $student->address2 ?? '') }}">
 </div>
 
 <div class="row">
-
     <div class="field">
-
         <input
             type="text"
             name="landmark"
             placeholder="Landmark"
             value="{{ old('landmark', $student->landmark ?? '') }}">
-
-    </div>
+</div>
 
     <div class="field">
-
         <input
             type="text"
             name="pincode"
             placeholder="PIN code"
             value="{{ old('pincode', $student->pincode ?? '') }}"
             required>
-
     </div>
-
 </div>
+@endif
 
 <!-- ================= PHOTO ================= -->
 <h3 class="section-title">PHOTO FOR THE CARD</h3>
@@ -1032,7 +1029,7 @@ form{
             type="submit"
             class="submit-btn">
 
-            Submit Enrollment
+            {{ __('students.submit') }}
 
         </button>
 
@@ -1134,8 +1131,6 @@ dob.addEventListener("change", function () {
     }
 
 });
-
-
 
 
 </script>
